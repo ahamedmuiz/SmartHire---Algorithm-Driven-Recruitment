@@ -59,15 +59,20 @@ function loadAvailableJobs() {
 
             jobs.forEach(job => {
                 const jobCard = `
-                <div class="card shadow-sm mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title text-primary">${job.title}</h5>
-                        <p class="card-text">${job.description}</p>
-                        <p class="card-text"><small class="text-muted">Required: ${job.requiredSkills}</small></p>
-                        <button class="btn btn-sm btn-success" onclick="openApplyModal(${job.id}, '${job.title}')">Apply Now</button>
-                    </div>
-                </div>
-            `;
+    <div class="card feed-card shadow-sm mb-4 border-0">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="card-title fw-bold text-dark mb-0">${job.title}</h5>
+                <button class="btn btn-primary px-4 rounded-pill shadow-sm" onclick="openApplyModal(${job.id}, '${job.title}')">Apply Now</button>
+            </div>
+            <p class="card-text text-muted mb-3" style="font-size: 0.95rem;">${job.description}</p>
+            <div class="d-flex flex-wrap align-items-center">
+                <span class="text-secondary small fw-semibold me-2"><i class="bi bi-tools me-1"></i>Skills:</span>
+                ${job.requiredSkills.split(',').map(skill => `<span class="skill-badge">${skill.trim()}</span>`).join('')}
+            </div>
+        </div>
+    </div>
+`;
                 jobsContainer.innerHTML += jobCard;
             });
         })
