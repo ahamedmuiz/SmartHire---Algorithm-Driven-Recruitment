@@ -1,4 +1,3 @@
-// dto/response/AuthResponseDTO.java
 package lk.ijse.backend.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;

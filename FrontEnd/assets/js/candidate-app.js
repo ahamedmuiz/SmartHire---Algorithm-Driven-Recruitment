@@ -5,6 +5,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // --- NEW LOGOUT LOGIC ---
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('user_role');
+            window.location.href = 'login.html'; // Redirect back to login
+        });
+    }
+    // ------------------------
+
     loadAvailableJobs();
 
     // Handle the Application Submission (PDF Upload)
@@ -23,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('jobId', jobId);
 
             // Note: When using FormData, DO NOT set the 'Content-Type' header manually.
-            // The browser will automatically set it to 'multipart/form-data' with the correct boundary.
             fetch(`http://localhost:8080/api/applications/apply`, {
                 method: 'POST',
                 headers: {

@@ -1,4 +1,3 @@
-// dto/request/LoginRequestDTO.java
 package lk.ijse.backend.dto;
 import lombok.Data;
 @Data

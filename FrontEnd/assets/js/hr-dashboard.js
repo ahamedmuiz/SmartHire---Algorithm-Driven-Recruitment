@@ -5,6 +5,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // --- NEW LOGOUT LOGIC ---
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('user_role');
+            window.location.href = 'login.html'; // Redirect back to login
+        });
+    }
+    // ------------------------
+
     loadHRJobs();
 
     // Handle Creating a New Job
@@ -120,7 +131,6 @@ function updateStatus(applicationId, newStatus) {
         .then(response => {
             if (!response.ok) throw new Error('Failed to update status');
             alert(`Candidate marked as ${newStatus}. An email notification has been sent.`);
-            // Note: You might want to refresh the applicant list here by calling loadRankedApplicants again.
         })
         .catch(error => alert(error.message));
 }

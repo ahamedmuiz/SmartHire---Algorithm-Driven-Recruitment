@@ -1,4 +1,3 @@
-// dto/request/RegisterRequestDTO.java
 package lk.ijse.backend.dto;
 import lombok.Data;
 @Data public class RegisterRequestDTO {
