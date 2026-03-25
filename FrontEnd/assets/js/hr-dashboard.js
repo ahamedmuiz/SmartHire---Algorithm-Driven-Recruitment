@@ -5,16 +5,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // --- NEW LOGOUT LOGIC ---
+    // --- LOGOUT LOGIC WITH CONFIRMATION ---
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            localStorage.removeItem('jwt_token');
-            localStorage.removeItem('user_role');
-            window.location.href = 'login.html'; // Redirect back to login
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('user_role');
+                window.location.href = 'login.html'; // Redirect back to login
+            }
         });
     }
-    // ------------------------
+    // --------------------------------------
 
     loadHRJobs();
 
