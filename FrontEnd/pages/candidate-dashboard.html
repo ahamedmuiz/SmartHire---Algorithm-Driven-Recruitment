@@ -12,10 +12,11 @@
         .navbar-custom { background-color: #0ea5e9; background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%); }
         .feed-card { border: none; border-radius: 12px; margin-bottom: 20px; transition: 0.2s; }
         .feed-card:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.06); transform: translateY(-3px); }
-        .skill-badge { background-color: #e0f2fe; color: #0284c7; font-weight: 500; font-size: 0.8rem; padding: 5px 10px; border-radius: 20px; margin-right: 5px; }
+        .skill-badge { background-color: #e0f2fe; color: #0284c7; font-weight: 500; font-size: 0.8rem; padding: 5px 10px; border-radius: 20px; margin-right: 5px; margin-bottom: 5px; display: inline-block;}
         .app-list-item { border-left: 4px solid #cbd5e1; border-radius: 8px !important; margin-bottom: 10px; border-top: 1px solid rgba(0,0,0,.125) !important; }
         .app-list-item.hired { border-left-color: #10b981; }
         .app-list-item.rejected { border-left-color: #ef4444; }
+        .app-list-item.pending { border-left-color: #f59e0b; }
     </style>
 </head>
 <body>
@@ -39,13 +40,6 @@
             <h4 class="fw-bold text-dark mb-4"><i class="bi bi-clock-history me-2 text-secondary"></i>My Applications</h4>
             <div class="card border-0 bg-transparent">
                 <ul class="list-group list-group-flush" id="myApplicationsList">
-                    <li class="list-group-item bg-white shadow-sm app-list-item py-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold">Java Developer</span>
-                            <span class="badge bg-warning text-dark">Pending</span>
-                        </div>
-                        <small class="text-muted d-block mt-1">Score calculating...</small>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -61,16 +55,18 @@
             </div>
             <div class="modal-body px-4 pb-4">
                 <div class="alert alert-info border-0 rounded-3 small">
-                    <i class="bi bi-robot me-1"></i> Our AI will parse your resume and generate a match score instantly.
+                    <i class="bi bi-robot me-1"></i> Our algorithm will parse your resume and generate a match score instantly.
                 </div>
                 <form id="applyJobForm">
                     <input type="hidden" id="applyJobId">
                     <div class="mb-4 mt-3">
                         <label class="form-label fw-bold">Upload Resume</label>
                         <input class="form-control form-control-lg bg-light" type="file" id="resumePdf" accept=".pdf" required>
-                        <div class="form-text mt-2"><i class="bi bi-file-earmark-pdf text-danger me-1"></i>PDF format only. Max size 5MB.</div>
+                        <div class="form-text mt-2"><i class="bi bi-file-earmark-pdf text-danger me-1"></i>PDF format only.</div>
                     </div>
-                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold rounded-3 shadow-sm"><i class="bi bi-send-check me-2"></i>Submit Application</button>
+                    <button type="submit" id="submitAppBtn" class="btn btn-success w-100 py-2 fw-bold rounded-3 shadow-sm">
+                        <i class="bi bi-send-check me-2"></i>Submit Application
+                    </button>
                 </form>
             </div>
         </div>
