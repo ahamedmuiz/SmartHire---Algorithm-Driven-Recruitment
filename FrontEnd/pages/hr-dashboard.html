@@ -40,8 +40,7 @@
         </button>
     </div>
 
-    <div class="row mb-5" id="jobPostingsList">
-    </div>
+    <div class="row mb-5" id="jobPostingsList"></div>
 
     <div class="d-flex justify-content-between align-items-center mb-3 mt-5">
         <h3 class="fw-bold text-dark"><i class="bi bi-bar-chart-fill me-2 text-success"></i>Ranked Applicants</h3>
@@ -88,6 +87,35 @@
                         <textarea class="form-control bg-light border-0 py-2" id="jobDesc" rows="4" required></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-3">Publish Job</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editJobModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 15px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold">Edit Job Post</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editJobForm">
+                    <input type="hidden" id="editJobId">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Job Title</label>
+                        <input type="text" class="form-control bg-light border-0 py-2" id="editJobTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Required Skills (Comma separated)</label>
+                        <input type="text" class="form-control bg-light border-0 py-2" id="editJobSkills" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small text-muted">Job Description</label>
+                        <textarea class="form-control bg-light border-0 py-2" id="editJobDesc" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100 py-2 fw-bold rounded-3 text-dark">Save Changes</button>
                 </form>
             </div>
         </div>

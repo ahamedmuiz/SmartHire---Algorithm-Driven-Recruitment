@@ -21,13 +21,30 @@ public class JobController {
 
     @PostMapping
     public ResponseEntity<JobResponseDTO> createJob(@RequestBody JobRequestDTO request, Authentication authentication) {
-        // authentication.getName() automatically extracts the email from the valid JWT token
-        String hrEmail = authentication.getName();
-        return ResponseEntity.ok(jobService.createJob(request, hrEmail));
+        return ResponseEntity.ok(jobService.createJob(request, authentication.getName()));
     }
 
     @GetMapping
     public ResponseEntity<List<JobResponseDTO>> getAllJobs() {
         return ResponseEntity.ok(jobService.getAllJobs());
+    }
+
+    @GetMapping("/my-jobs")
+    public ResponseEntity<List<JobResponseDTO>> getMyJobs(Authentication authentication) {
+        return ResponseEntity.ok(jobService.getMyJobs(authentication.getName()));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<JobResponseDTO> updateJob(
+            @PathVariable Long id,
+            @RequestBody JobRequestDTO request,
+            Authentication authentication) {
+        return ResponseEntity.ok(jobService.updateJob(id, request, authentication.getName()));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteJob(@PathVariable Long id, Authentication authentication) {
+        jobService.deleteJob(id, authentication.getName());
+        return ResponseEntity.ok("Job deleted successfully");
     }
 }
