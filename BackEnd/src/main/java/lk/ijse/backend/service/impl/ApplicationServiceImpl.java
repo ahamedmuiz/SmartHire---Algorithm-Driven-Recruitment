@@ -42,28 +42,6 @@ public class ApplicationServiceImpl implements ApplicationService {
         this.emailService = emailService;
     }
 
-    @Override
-    public void submitApplication(Long jobId, MultipartFile resumeFile, String candidateEmail) {
-        User candidate = userRepository.findByEmail(candidateEmail)
-                .orElseThrow(() -> new RuntimeException("Candidate not found"));
-
-        JobPosting job = jobPostingRepository.findById(jobId)
-                .orElseThrow(() -> new RuntimeException("Job not found"));
-
-        String resumeText = pdfParserUtil.extractText(resumeFile);
-        int score = scoringAlgorithmUtil.calculateScore(resumeText, job.getRequiredSkills());
-
-        JobApplication application = JobApplication.builder()
-                .candidate(candidate)
-                .job(job)
-                .resumeText(resumeText)
-                .matchScore(score)
-                .status("PENDING")
-                .appliedAt(LocalDateTime.now())
-                .build();
-
-        applicationRepository.save(application);
-    }
 
     @Override
     public List<ApplicationResponseDTO> getApplicationsByJob(Long jobId) {
@@ -98,6 +76,73 @@ public class ApplicationServiceImpl implements ApplicationService {
         );
     }
 
+    @Override
+    public void submitApplication(Long jobId, MultipartFile resumeFile, String candidateEmail) {
+        User candidate = userRepository.findByEmail(candidateEmail)
+                .orElseThrow(() -> new RuntimeException("Candidate not found"));
+
+        JobPosting job = jobPostingRepository.findById(jobId)
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+
+        // Check if already applied
+        boolean alreadyApplied = applicationRepository.findByCandidateId(candidate.getId())
+                .stream().anyMatch(app -> app.getJob().getId().equals(jobId));
+        if (alreadyApplied) {
+            throw new RuntimeException("You have already applied for this job.");
+        }
+
+        try {
+            String resumeText = pdfParserUtil.extractText(resumeFile);
+            int score = scoringAlgorithmUtil.calculateScore(resumeText, job.getRequiredSkills());
+
+            JobApplication application = JobApplication.builder()
+                    .candidate(candidate)
+                    .job(job)
+                    .resumeText(resumeText)
+                    .resumeFile(resumeFile.getBytes()) // NEW: Save the actual file
+                    .matchScore(score)
+                    .status("PENDING")
+                    .appliedAt(LocalDateTime.now())
+                    .build();
+
+            applicationRepository.save(application);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to process application", e);
+        }
+    }
+
+    @Override
+    public void withdrawApplication(Long applicationId, String candidateEmail) {
+        User candidate = userRepository.findByEmail(candidateEmail)
+                .orElseThrow(() -> new RuntimeException("Candidate not found"));
+
+        JobApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Application not found"));
+
+        // Security check: only the owner can withdraw
+        if (!application.getCandidate().getId().equals(candidate.getId())) {
+            throw new RuntimeException("Unauthorized to withdraw this application.");
+        }
+
+        applicationRepository.delete(application);
+    }
+
+    @Override
+    public byte[] downloadResume(Long applicationId, String hrEmail) {
+        User hrUser = userRepository.findByEmail(hrEmail)
+                .orElseThrow(() -> new RuntimeException("HR User not found"));
+
+        JobApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Application not found"));
+
+        // Security check: only the HR who posted the job can download the resume
+        if (!application.getJob().getHr().getId().equals(hrUser.getId())) {
+            throw new RuntimeException("Unauthorized to download this resume.");
+        }
+
+        return application.getResumeFile();
+    }
+
     // Helper method to keep code clean
     private ApplicationResponseDTO mapToDTO(JobApplication app) {
         return ApplicationResponseDTO.builder()
@@ -108,4 +153,6 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .status(app.getStatus())
                 .build();
     }
+
+
 }

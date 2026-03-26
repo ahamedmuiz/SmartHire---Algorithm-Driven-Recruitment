@@ -16,24 +16,27 @@ public class JobApplication {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Link to the candidate who applied
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "candidate_id", nullable = false)
     private User candidate;
 
-    // Link to the job they are applying for
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_id", nullable = false)
     private JobPosting job;
 
-    @Lob // Used for large amounts of text (the parsed PDF)
+    @Lob
     @Column(columnDefinition = "LONGTEXT")
     private String resumeText;
 
-    private Integer matchScore; // The 0-100 score calculated by your algorithm
+    // NEW: Store the actual PDF file for downloading
+    @Lob
+    @Column(columnDefinition = "LONGBLOB")
+    private byte[] resumeFile;
+
+    private Integer matchScore;
 
     @Column(nullable = false)
-    private String status; // PENDING, HIRED, REJECTED
+    private String status;
 
     @Column(nullable = false)
     private LocalDateTime appliedAt;

@@ -9,4 +9,7 @@ public interface ApplicationService {
     List<ApplicationResponseDTO> getApplicationsByJob(Long jobId); // For HR
     List<ApplicationResponseDTO> getMyApplications(String candidateEmail); // NEW: For Freelancers
     void updateStatus(Long applicationId, String newStatus);
+
+    void withdrawApplication(Long applicationId, String candidateEmail);
+    byte[] downloadResume(Long applicationId, String hrEmail);
 }

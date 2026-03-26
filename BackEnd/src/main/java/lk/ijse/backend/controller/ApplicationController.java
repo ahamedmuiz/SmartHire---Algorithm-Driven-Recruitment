@@ -2,6 +2,8 @@ package lk.ijse.backend.controller;
 
 import lk.ijse.backend.dto.ApplicationResponseDTO;
 import lk.ijse.backend.service.ApplicationService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -47,5 +49,21 @@ public class ApplicationController {
 
         applicationService.updateStatus(id, status);
         return ResponseEntity.ok("Status updated and email sent");
+    }
+
+    @DeleteMapping("/{id}/withdraw")
+    public ResponseEntity<String> withdrawApplication(@PathVariable Long id, Authentication authentication) {
+        applicationService.withdrawApplication(id, authentication.getName());
+        return ResponseEntity.ok("Application withdrawn successfully");
+    }
+
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> downloadResume(@PathVariable Long id, Authentication authentication) {
+        byte[] pdfBytes = applicationService.downloadResume(id, authentication.getName());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"candidate_resume.pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
     }
 }
