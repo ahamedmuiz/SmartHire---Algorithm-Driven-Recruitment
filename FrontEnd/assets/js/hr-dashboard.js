@@ -1,37 +1,43 @@
 let currentClientJobs = [];
-let currentViewingJobId = null; // Store ID for auto-refreshing applicant list
+let currentViewingJobId = null;
+
+// Helper function to safely hide modals without crashing
+function hideModalSafe(modalId) {
+    const modalEl = document.getElementById(modalId);
+    const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modalInstance.hide();
+}
+
+// Helper to escape quotes in strings before passing to HTML onclick
+function escapeHtml(str) {
+    return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (!localStorage.getItem('jwt_token')) {
+    if (!localStorage.getItem('jwt_token') || localStorage.getItem('user_role') !== 'ROLE_HR') {
         window.location.href = 'login.html';
         return;
     }
 
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('jwt_token');
-                localStorage.removeItem('user_role');
-                window.location.href = 'login.html';
-            }
-        });
-    }
+    document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        if (confirm('Are you sure you want to logout?')) {
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('user_role');
+            window.location.href = 'login.html';
+        }
+    });
 
     // Profile Logic
-    const profileModalEl = document.getElementById('profileModal');
-    if (profileModalEl) {
-        profileModalEl.addEventListener('show.bs.modal', function () {
-            fetch('http://localhost:8080/api/users/profile', {
-                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
-            })
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('profileEmail').value = data.email;
-                    document.getElementById('profileName').value = data.fullName;
-                });
-        });
-    }
+    document.getElementById('profileModal')?.addEventListener('show.bs.modal', function () {
+        fetch('http://localhost:8080/api/users/profile', {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
+        })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('profileEmail').value = data.email;
+                document.getElementById('profileName').value = data.fullName;
+            });
+    });
 
     document.getElementById('profileForm')?.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -48,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(payload)
         }).then(() => {
             alert('Profile updated successfully!');
-            bootstrap.Modal.getInstance(document.getElementById('profileModal')).hide();
+            hideModalSafe('profileModal');
             document.getElementById('profilePassword').value = '';
         });
     });
@@ -74,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
             .then(() => {
                 alert('Job posted successfully!');
-                bootstrap.Modal.getInstance(document.getElementById('createJobModal')).hide();
+                hideModalSafe('createJobModal');
                 document.getElementById('createJobForm').reset();
                 loadHRJobs();
             });
@@ -100,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
             .then(() => {
                 alert('Job updated successfully!');
-                bootstrap.Modal.getInstance(document.getElementById('editJobModal')).hide();
+                hideModalSafe('editJobModal');
                 loadHRJobs();
             });
     });
@@ -171,7 +177,7 @@ function deleteJob(jobId) {
 }
 
 function loadRankedApplicants(jobId) {
-    currentViewingJobId = jobId; // Store for auto-refresh
+    currentViewingJobId = jobId;
     fetch(`http://localhost:8080/api/applications/job/${jobId}`, {
         headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
     })
@@ -188,7 +194,7 @@ function loadRankedApplicants(jobId) {
             applicants.forEach(app => {
                 const scoreClass = app.matchScore > 75 ? 'text-success fw-bold' : '';
 
-                // ACTION LOCK LOGIC
+                // Single Action Logic
                 let actionButtons = '';
                 if (app.status === 'PENDING') {
                     actionButtons = `
@@ -225,9 +231,7 @@ function updateStatus(applicationId, newStatus) {
         })
             .then(() => {
                 alert(`Candidate marked as ${newStatus}.`);
-                if(currentViewingJobId) {
-                    loadRankedApplicants(currentViewingJobId); // Auto-Refresh Table
-                }
+                if(currentViewingJobId) loadRankedApplicants(currentViewingJobId);
             });
     }
 }

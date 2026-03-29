@@ -23,9 +23,7 @@ public class JobServiceImpl implements JobService {
     private final UserRepository userRepository;
     private final JobApplicationRepository jobApplicationRepository;
 
-    public JobServiceImpl(JobPostingRepository jobPostingRepository,
-                          UserRepository userRepository,
-                          JobApplicationRepository jobApplicationRepository) {
+    public JobServiceImpl(JobPostingRepository jobPostingRepository, UserRepository userRepository, JobApplicationRepository jobApplicationRepository) {
         this.jobPostingRepository = jobPostingRepository;
         this.userRepository = userRepository;
         this.jobApplicationRepository = jobApplicationRepository;
@@ -33,8 +31,9 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public JobResponseDTO createJob(JobRequestDTO request, String hrEmail) {
-        User hrUser = userRepository.findByEmail(hrEmail)
-                .orElseThrow(() -> new RuntimeException("HR User not found"));
+        User hrUser = userRepository.findByEmail(hrEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        // SECURITY: Only HR can post jobs
+        if (!"ROLE_HR".equals(hrUser.getRole())) throw new RuntimeException("Unauthorized: Only Clients can post jobs.");
 
         JobPosting job = JobPosting.builder()
                 .title(request.getTitle())
@@ -43,75 +42,50 @@ public class JobServiceImpl implements JobService {
                 .createdAt(LocalDateTime.now())
                 .hr(hrUser)
                 .build();
-
         return mapToResponseDTO(jobPostingRepository.save(job));
     }
 
     @Override
     public List<JobResponseDTO> getAllJobs() {
-        return jobPostingRepository.findAll().stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        return jobPostingRepository.findAll().stream().map(this::mapToResponseDTO).collect(Collectors.toList());
     }
 
     @Override
     public List<JobResponseDTO> getMyJobs(String hrEmail) {
-        User hrUser = userRepository.findByEmail(hrEmail)
-                .orElseThrow(() -> new RuntimeException("HR User not found"));
-
-        return jobPostingRepository.findByHrId(hrUser.getId()).stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        User hrUser = userRepository.findByEmail(hrEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        return jobPostingRepository.findByHrId(hrUser.getId()).stream().map(this::mapToResponseDTO).collect(Collectors.toList());
     }
 
     @Override
     public JobResponseDTO updateJob(Long jobId, JobRequestDTO request, String hrEmail) {
-        User hrUser = userRepository.findByEmail(hrEmail)
-                .orElseThrow(() -> new RuntimeException("HR User not found"));
+        User hrUser = userRepository.findByEmail(hrEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        JobPosting job = jobPostingRepository.findById(jobId).orElseThrow(() -> new RuntimeException("Job not found"));
 
-        JobPosting job = jobPostingRepository.findById(jobId)
-                .orElseThrow(() -> new RuntimeException("Job not found"));
-
-        if (!job.getHr().getId().equals(hrUser.getId())) {
-            throw new RuntimeException("Unauthorized: You can only edit your own job postings.");
-        }
+        if (!job.getHr().getId().equals(hrUser.getId())) throw new RuntimeException("Unauthorized: You can only edit your own jobs.");
 
         job.setTitle(request.getTitle());
         job.setDescription(request.getDescription());
         job.setRequiredSkills(request.getRequiredSkills());
-
         return mapToResponseDTO(jobPostingRepository.save(job));
     }
 
     @Override
-    @Transactional // Ensures that if deleting applications fails, the job isn't deleted either
+    @Transactional
     public void deleteJob(Long jobId, String hrEmail) {
-        User hrUser = userRepository.findByEmail(hrEmail)
-                .orElseThrow(() -> new RuntimeException("HR User not found"));
+        User hrUser = userRepository.findByEmail(hrEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        JobPosting job = jobPostingRepository.findById(jobId).orElseThrow(() -> new RuntimeException("Job not found"));
 
-        JobPosting job = jobPostingRepository.findById(jobId)
-                .orElseThrow(() -> new RuntimeException("Job not found"));
+        if (!job.getHr().getId().equals(hrUser.getId())) throw new RuntimeException("Unauthorized: You can only delete your own jobs.");
 
-        if (!job.getHr().getId().equals(hrUser.getId())) {
-            throw new RuntimeException("Unauthorized: You can only delete your own job postings.");
-        }
-
-        // 1. Delete associated applications first to prevent foreign key constraint violations in MySQL
         List<JobApplication> applications = jobApplicationRepository.findByJobIdOrderByMatchScoreDesc(jobId);
         jobApplicationRepository.deleteAll(applications);
-
-        // 2. Safely delete the job
         jobPostingRepository.delete(job);
     }
 
     private JobResponseDTO mapToResponseDTO(JobPosting job) {
         return JobResponseDTO.builder()
-                .id(job.getId())
-                .title(job.getTitle())
-                .description(job.getDescription())
-                .requiredSkills(job.getRequiredSkills())
-                .createdAt(job.getCreatedAt())
-                .hrName(job.getHr().getFullName())
+                .id(job.getId()).title(job.getTitle()).description(job.getDescription())
+                .requiredSkills(job.getRequiredSkills()).createdAt(job.getCreatedAt()).hrName(job.getHr().getFullName())
                 .build();
     }
 }

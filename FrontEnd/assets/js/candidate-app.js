@@ -1,34 +1,39 @@
+function hideModalSafe(modalId) {
+    const modalEl = document.getElementById(modalId);
+    const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modalInstance.hide();
+}
+
+function escapeHtml(str) {
+    return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    if (!localStorage.getItem('jwt_token')) {
+    // SECURITY: Ensure correct user role is on this page
+    if (!localStorage.getItem('jwt_token') || localStorage.getItem('user_role') !== 'ROLE_CANDIDATE') {
         window.location.href = 'login.html';
         return;
     }
 
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('jwt_token');
-                localStorage.removeItem('user_role');
-                window.location.href = 'login.html';
-            }
-        });
-    }
+    document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        if (confirm('Are you sure you want to logout?')) {
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('user_role');
+            window.location.href = 'login.html';
+        }
+    });
 
     // Profile Logic
-    const profileModalEl = document.getElementById('profileModal');
-    if (profileModalEl) {
-        profileModalEl.addEventListener('show.bs.modal', function () {
-            fetch('http://localhost:8080/api/users/profile', {
-                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
-            })
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('profileEmail').value = data.email;
-                    document.getElementById('profileName').value = data.fullName;
-                });
-        });
-    }
+    document.getElementById('profileModal')?.addEventListener('show.bs.modal', function () {
+        fetch('http://localhost:8080/api/users/profile', {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
+        })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('profileEmail').value = data.email;
+                document.getElementById('profileName').value = data.fullName;
+            });
+    });
 
     document.getElementById('profileForm')?.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -45,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(payload)
         }).then(() => {
             alert('Profile updated successfully!');
-            bootstrap.Modal.getInstance(document.getElementById('profileModal')).hide();
+            hideModalSafe('profileModal');
             document.getElementById('profilePassword').value = '';
         });
     });
@@ -54,49 +59,45 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMyApplications();
 
     // Apply Job Submit
-    const applyForm = document.getElementById('applyJobForm');
-    if (applyForm) {
-        applyForm.addEventListener('submit', function(e) {
-            e.preventDefault();
+    document.getElementById('applyJobForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
 
-            const submitBtn = document.getElementById('submitAppBtn');
-            const originalBtnText = submitBtn.innerHTML;
-            const fileInput = document.getElementById('resumePdf');
-            const file = fileInput.files[0];
+        const submitBtn = document.getElementById('submitAppBtn');
+        const originalBtnText = submitBtn.innerHTML;
+        const fileInput = document.getElementById('resumePdf');
+        const file = fileInput.files[0];
 
-            if (file.type !== 'application/pdf') {
-                alert("Please upload a valid PDF document.");
-                return;
-            }
+        if (file.type !== 'application/pdf') {
+            alert("Please upload a valid PDF document.");
+            return;
+        }
 
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing AI Score...';
-            submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing AI Score...';
+        submitBtn.disabled = true;
 
-            const jobId = document.getElementById('applyJobId').value;
-            const formData = new FormData();
-            formData.append('resume', file);
-            formData.append('jobId', jobId);
+        const jobId = document.getElementById('applyJobId').value;
+        const formData = new FormData();
+        formData.append('resume', file);
+        formData.append('jobId', jobId);
 
-            fetch(`http://localhost:8080/api/applications/apply`, {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') },
-                body: formData
+        fetch(`http://localhost:8080/api/applications/apply`, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') },
+            body: formData
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to submit application. You may have already applied.');
+                alert('Success! Your application was submitted and scored.');
+                hideModalSafe('applyJobModal');
+                document.getElementById('applyJobForm').reset();
+                loadMyApplications();
             })
-                .then(response => {
-                    if (!response.ok) throw new Error('Failed to submit application. You may have already applied.');
-                    alert('Success! Your application was submitted and scored.');
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('applyJobModal'));
-                    modal.hide();
-                    applyForm.reset();
-                    loadMyApplications();
-                })
-                .catch(error => alert(error.message))
-                .finally(() => {
-                    submitBtn.innerHTML = originalBtnText;
-                    submitBtn.disabled = false;
-                });
-        });
-    }
+            .catch(error => alert(error.message))
+            .finally(() => {
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.disabled = false;
+            });
+    });
 });
 
 function loadAvailableJobs() {
@@ -112,17 +113,20 @@ function loadAvailableJobs() {
                 return;
             }
             jobs.forEach(job => {
+                // Null check for skills array
+                const skillsArray = job.requiredSkills ? job.requiredSkills.split(',') : [];
+
                 const jobCard = `
             <div class="card feed-card shadow-sm mb-4 border-0">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h5 class="card-title fw-bold text-dark mb-0">${job.title}</h5>
-                        <button class="btn btn-primary px-4 rounded-pill shadow-sm" onclick="openApplyModal(${job.id}, '${job.title}')">Apply Now</button>
+                        <button class="btn btn-primary px-4 rounded-pill shadow-sm" onclick="openApplyModal(${job.id}, '${escapeHtml(job.title)}')">Apply Now</button>
                     </div>
                     <p class="card-text text-muted mb-3" style="font-size: 0.95rem;">${job.description}</p>
                     <div class="d-flex flex-wrap align-items-center">
                         <span class="text-secondary small fw-semibold me-2"><i class="bi bi-tools me-1"></i>Skills:</span>
-                        ${job.requiredSkills.split(',').map(skill => `<span class="skill-badge">${skill.trim()}</span>`).join('')}
+                        ${skillsArray.map(skill => `<span class="skill-badge">${skill.trim()}</span>`).join('')}
                     </div>
                 </div>
             </div>`;
@@ -176,12 +180,10 @@ function withdrawApplication(applicationId) {
             method: 'DELETE',
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
         })
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to withdraw application');
+            .then(() => {
                 alert('Application withdrawn successfully.');
                 loadMyApplications();
-            })
-            .catch(error => alert(error.message));
+            });
     }
 }
 
@@ -189,6 +191,5 @@ function openApplyModal(jobId, jobTitle) {
     document.getElementById('applyJobId').value = jobId;
     document.getElementById('modalJobTitle').innerText = jobTitle;
     document.getElementById('applyJobForm').reset();
-    const applyModal = new bootstrap.Modal(document.getElementById('applyJobModal'));
-    applyModal.show();
+    new bootstrap.Modal(document.getElementById('applyJobModal')).show();
 }
