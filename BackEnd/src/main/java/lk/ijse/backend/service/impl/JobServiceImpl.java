@@ -32,7 +32,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public JobResponseDTO createJob(JobRequestDTO request, String hrEmail) {
         User hrUser = userRepository.findByEmail(hrEmail).orElseThrow(() -> new RuntimeException("User not found"));
-        // SECURITY: Only HR can post jobs
+
         if (!"ROLE_HR".equals(hrUser.getRole())) throw new RuntimeException("Unauthorized: Only Clients can post jobs.");
 
         JobPosting job = JobPosting.builder()

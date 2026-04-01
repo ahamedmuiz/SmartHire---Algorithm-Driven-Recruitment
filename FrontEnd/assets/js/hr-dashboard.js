@@ -1,14 +1,12 @@
 let currentClientJobs = [];
 let currentViewingJobId = null;
 
-// Helper function to safely hide modals without crashing
 function hideModalSafe(modalId) {
     const modalEl = document.getElementById(modalId);
     const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
     modalInstance.hide();
 }
 
-// Helper to escape quotes in strings before passing to HTML onclick
 function escapeHtml(str) {
     return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
@@ -27,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Profile Logic
     document.getElementById('profileModal')?.addEventListener('show.bs.modal', function () {
         fetch('http://localhost:8080/api/users/profile', {
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
@@ -194,7 +191,6 @@ function loadRankedApplicants(jobId) {
             applicants.forEach(app => {
                 const scoreClass = app.matchScore > 75 ? 'text-success fw-bold' : '';
 
-                // Single Action Logic
                 let actionButtons = '';
                 if (app.status === 'PENDING') {
                     actionButtons = `

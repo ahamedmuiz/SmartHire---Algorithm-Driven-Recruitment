@@ -38,7 +38,7 @@ public class UserController {
 
         user.setFullName(request.getFullName());
 
-        // Only update password if they typed a new one
+        //update pass in profile
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }

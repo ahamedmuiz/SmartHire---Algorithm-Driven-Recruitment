@@ -8,5 +8,5 @@ import lombok.Data;
 public class UserProfileDTO {
     private String fullName;
     private String email;
-    private String password; // Optional: Only provided if they want to change it
+    private String password;
 }

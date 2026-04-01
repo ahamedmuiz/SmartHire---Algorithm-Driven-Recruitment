@@ -9,7 +9,7 @@ function escapeHtml(str) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // SECURITY: Ensure correct user role is on this page
+
     if (!localStorage.getItem('jwt_token') || localStorage.getItem('user_role') !== 'ROLE_CANDIDATE') {
         window.location.href = 'login.html';
         return;
@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Profile Logic
     document.getElementById('profileModal')?.addEventListener('show.bs.modal', function () {
         fetch('http://localhost:8080/api/users/profile', {
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
@@ -58,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAvailableJobs();
     loadMyApplications();
 
-    // Apply Job Submit
     document.getElementById('applyJobForm')?.addEventListener('submit', function(e) {
         e.preventDefault();
 
@@ -113,7 +111,7 @@ function loadAvailableJobs() {
                 return;
             }
             jobs.forEach(job => {
-                // Null check for skills array
+
                 const skillsArray = job.requiredSkills ? job.requiredSkills.split(',') : [];
 
                 const jobCard = `

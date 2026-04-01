@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- LOGIN LOGIC ---
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', function(e) {
@@ -19,11 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
-                    // Save the token and role in LocalStorage
                     localStorage.setItem('jwt_token', data.token);
                     localStorage.setItem('user_role', data.role);
 
-                    // Redirect based on role
                     if (data.role === 'ROLE_HR') {
                         window.location.href = 'hr-dashboard.html';
                     } else {
@@ -34,7 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- REGISTRATION LOGIC ---
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
         registerForm.addEventListener('submit', function(e) {

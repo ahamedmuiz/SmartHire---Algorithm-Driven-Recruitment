@@ -40,7 +40,6 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Override
     public void submitApplication(Long jobId, MultipartFile resumeFile, String candidateEmail) {
         User candidate = userRepository.findByEmail(candidateEmail).orElseThrow(() -> new RuntimeException("Candidate not found"));
-        // SECURITY: Only Freelancers can apply
         if (!"ROLE_CANDIDATE".equals(candidate.getRole())) throw new RuntimeException("Unauthorized: Only Freelancers can apply for jobs.");
 
         JobPosting job = jobPostingRepository.findById(jobId).orElseThrow(() -> new RuntimeException("Job not found"));

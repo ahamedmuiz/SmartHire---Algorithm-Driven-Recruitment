@@ -20,8 +20,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
 
-    // FIX: Explicitly writing the constructor stops IntelliJ from complaining
-    // about missing arguments for dependency injection.
+
     public AuthServiceImpl(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
                            JwtUtil jwtUtil,
@@ -38,7 +37,6 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Email already in use");
         }
 
-        // Make sure your User entity has the @Builder annotation on it!
         User user = User.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail())

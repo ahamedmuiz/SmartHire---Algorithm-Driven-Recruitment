@@ -36,7 +36,6 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.getApplicationsByJob(jobId));
     }
 
-    // NEW: Endpoint for Freelancers to fetch their application history
     @GetMapping("/my-applications")
     public ResponseEntity<List<ApplicationResponseDTO>> getMyApplications(Authentication authentication) {
         return ResponseEntity.ok(applicationService.getMyApplications(authentication.getName()));

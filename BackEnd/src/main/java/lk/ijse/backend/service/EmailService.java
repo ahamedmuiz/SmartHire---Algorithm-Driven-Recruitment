@@ -25,7 +25,6 @@ public class EmailService {
             helper.setTo(toEmail);
             helper.setSubject("SmartHire Application Status Update");
 
-            // ✅ Set custom sender name here
             helper.setFrom(new InternetAddress("ahamedmuiz123@gmail.com", "SmartHire Team"));
 
             String body = "Hello " + candidateName + ",\n\n" +

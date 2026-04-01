@@ -6,8 +6,8 @@ import java.util.List;
 
 public interface ApplicationService {
     void submitApplication(Long jobId, MultipartFile resumeFile, String candidateEmail);
-    List<ApplicationResponseDTO> getApplicationsByJob(Long jobId); // For HR
-    List<ApplicationResponseDTO> getMyApplications(String candidateEmail); // NEW: For Freelancers
+    List<ApplicationResponseDTO> getApplicationsByJob(Long jobId);
+    List<ApplicationResponseDTO> getMyApplications(String candidateEmail);
     void updateStatus(Long applicationId, String newStatus);
 
     void withdrawApplication(Long applicationId, String candidateEmail);

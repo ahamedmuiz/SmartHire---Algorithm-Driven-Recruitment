@@ -12,5 +12,5 @@ public class JobResponseDTO {
     private String description;
     private String requiredSkills;
     private LocalDateTime createdAt;
-    private String hrName; // Sending the HR's name, not their whole User object
+    private String hrName;
 }
