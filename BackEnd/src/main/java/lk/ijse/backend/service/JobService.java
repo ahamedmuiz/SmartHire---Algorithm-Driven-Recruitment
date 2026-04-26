@@ -9,4 +9,6 @@ public interface JobService {
     List<JobResponseDTO> getAllJobs();
     List<JobResponseDTO> getMyJobs(String hrEmail);
     JobResponseDTO updateJob(Long jobId, JobRequestDTO request, String hrEmail);
+
+    void deleteJob(Long id, String name);
 }
