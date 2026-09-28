@@ -31,9 +31,8 @@ public class User implements UserDetails {
     private String password;
 
     @Column(nullable = false)
-    private String role; // e.g., "ROLE_HR" or "ROLE_CANDIDATE"
+    private String role;
 
-    // --- UserDetails Methods for Spring Security ---
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -42,7 +41,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email; // We use email as the username
+        return email;
     }
 
     @Override

@@ -17,22 +17,26 @@ public class EmailService {
     }
 
     @Async
-    public void sendStatusUpdateEmail(String toEmail, String candidateName, String status) {
+    public void sendStatusUpdateEmail(String toEmail, String candidateName, String status, String jobTitle) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false);
 
             helper.setTo(toEmail);
-            helper.setSubject("SmartHire Application Status Update");
-
+            helper.setSubject("SmartHire Application Update: " + jobTitle);
             helper.setFrom(new InternetAddress("ahamedmuiz123@gmail.com", "SmartHire Team"));
 
-            String body = "Hello " + candidateName + ",\n\n" +
-                    "Your application status for the recent job posting has been updated to: " + status + ".\n\n" +
-                    "Thank you,\nSmartHire Recruitment Team";
+            StringBuilder body = new StringBuilder();
+            body.append("Hello ").append(candidateName).append(",\n\n");
+            body.append("Your application status for the position of '").append(jobTitle).append("' has been updated to: ").append(status).append(".\n\n");
 
-            helper.setText(body);
+            if ("SHORTLISTED".equalsIgnoreCase(status)) {
+                body.append("Congratulations! You have been shortlisted for this role. We will contact you soon with details for an interview.\n\n");
+            }
 
+            body.append("Thank you,\nSmartHire Recruitment Team");
+
+            helper.setText(body.toString());
             mailSender.send(message);
 
         } catch (Exception e) {

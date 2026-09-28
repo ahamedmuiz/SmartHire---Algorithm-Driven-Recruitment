@@ -1,6 +1,5 @@
 const API_BASE_URL = 'http://localhost:8080/api';
 
-// get the JWT token from LocalStorage
 function getAuthToken() {
     return localStorage.getItem('jwt_token');
 }

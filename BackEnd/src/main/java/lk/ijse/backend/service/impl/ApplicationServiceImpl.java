@@ -40,12 +40,20 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Override
     public void submitApplication(Long jobId, MultipartFile resumeFile, String candidateEmail) {
         User candidate = userRepository.findByEmail(candidateEmail).orElseThrow(() -> new RuntimeException("Candidate not found"));
-        if (!"ROLE_CANDIDATE".equals(candidate.getRole())) throw new RuntimeException("Unauthorized: Only Freelancers can apply for jobs.");
-
         JobPosting job = jobPostingRepository.findById(jobId).orElseThrow(() -> new RuntimeException("Job not found"));
 
-        if (applicationRepository.findByCandidateId(candidate.getId()).stream().anyMatch(app -> app.getJob().getId().equals(jobId))) {
-            throw new RuntimeException("You have already applied for this job.");
+
+        JobApplication existingApp = applicationRepository.findByCandidateId(candidate.getId()).stream()
+                .filter(app -> app.getJob().getId().equals(jobId))
+                .findFirst().orElse(null);
+
+        if (existingApp != null) {
+            if (!"WITHDRAWN".equals(existingApp.getStatus())) {
+                throw new RuntimeException("You have already applied for this job.");
+            }
+
+            applicationRepository.delete(existingApp);
+            applicationRepository.flush();
         }
 
         try {
@@ -54,7 +62,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
             JobApplication application = JobApplication.builder()
                     .candidate(candidate).job(job).resumeText(resumeText).resumeFile(resumeFile.getBytes())
-                    .matchScore(score).status("PENDING").appliedAt(LocalDateTime.now())
+                    .matchScore(score).status("APPLIED").appliedAt(LocalDateTime.now())
                     .build();
             applicationRepository.save(application);
         } catch (Exception e) {
@@ -78,7 +86,10 @@ public class ApplicationServiceImpl implements ApplicationService {
         JobApplication application = applicationRepository.findById(applicationId).orElseThrow(() -> new RuntimeException("Application not found"));
         application.setStatus(newStatus);
         applicationRepository.save(application);
-        emailService.sendStatusUpdateEmail(application.getCandidate().getEmail(), application.getCandidate().getFullName(), newStatus);
+
+        if (List.of("SHORTLISTED", "HIRED", "REJECTED").contains(newStatus.toUpperCase())) {
+            emailService.sendStatusUpdateEmail(application.getCandidate().getEmail(), application.getCandidate().getFullName(), newStatus, application.getJob().getTitle());
+        }
     }
 
     @Override
@@ -87,7 +98,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         JobApplication application = applicationRepository.findById(applicationId).orElseThrow(() -> new RuntimeException("Application not found"));
 
         if (!application.getCandidate().getId().equals(candidate.getId())) throw new RuntimeException("Unauthorized to withdraw this application.");
-        applicationRepository.delete(application);
+
+        application.setStatus("WITHDRAWN");
+        applicationRepository.save(application);
     }
 
     @Override
@@ -101,8 +114,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     private ApplicationResponseDTO mapToDTO(JobApplication app) {
         return ApplicationResponseDTO.builder()
-                .id(app.getId()).candidateName(app.getCandidate().getFullName()).jobTitle(app.getJob().getTitle())
-                .matchScore(app.getMatchScore()).status(app.getStatus())
+                .id(app.getId())
+                .jobId(app.getJob().getId())
+                .candidateName(app.getCandidate().getFullName())
+                .jobTitle(app.getJob().getTitle())
+                .matchScore(app.getMatchScore())
+                .status(app.getStatus())
                 .build();
     }
 }

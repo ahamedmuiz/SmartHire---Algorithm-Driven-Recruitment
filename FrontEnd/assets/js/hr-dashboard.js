@@ -1,253 +1,196 @@
-let currentClientJobs = [];
-let currentViewingJobId = null;
+const token = localStorage.getItem('jwt_token');
+const userRole = localStorage.getItem('user_role');
 
-function hideModalSafe(modalId) {
-    const modalEl = document.getElementById(modalId);
-    const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-    modalInstance.hide();
+if (!token || userRole !== 'ROLE_HR') {
+    window.location.href = 'login.html';
 }
 
-function escapeHtml(str) {
-    return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+let currentJobs = [];
+let viewingJobId = null;
+
+function showToast(message, type = 'success') {
+    const toastEl = document.getElementById('liveToast');
+    const toastMessage = document.getElementById('toastMessage');
+
+    toastEl.className = `toast align-items-center text-white border-0 bg-${type}`;
+    toastMessage.innerText = message;
+
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (!localStorage.getItem('jwt_token') || localStorage.getItem('user_role') !== 'ROLE_HR') {
-        window.location.href = 'login.html';
-        return;
-    }
+    loadHRJobs();
 
-    document.getElementById('logoutBtn')?.addEventListener('click', () => {
-        if (confirm('Are you sure you want to logout?')) {
-            localStorage.removeItem('jwt_token');
-            localStorage.removeItem('user_role');
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        if (confirm("Are you sure you want to log out of the HR Dashboard?")) {
+            localStorage.clear();
             window.location.href = 'login.html';
         }
     });
 
-    document.getElementById('profileModal')?.addEventListener('show.bs.modal', function () {
-        fetch('http://localhost:8080/api/users/profile', {
-            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
-        })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('profileEmail').value = data.email;
-                document.getElementById('profileName').value = data.fullName;
-            });
-    });
-
-    document.getElementById('profileForm')?.addEventListener('submit', function(e) {
+    document.getElementById('createJobForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        const payload = {
-            fullName: document.getElementById('profileName').value,
-            password: document.getElementById('profilePassword').value
-        };
-        fetch('http://localhost:8080/api/users/profile', {
-            method: 'PUT',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('jwt_token'),
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        }).then(() => {
-            alert('Profile updated successfully!');
-            hideModalSafe('profileModal');
-            document.getElementById('profilePassword').value = '';
-        });
-    });
 
-    loadHRJobs();
+        const submitBtn = document.getElementById('submitJobBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
 
-    // Create Job
-    document.getElementById('createJobForm')?.addEventListener('submit', function(e) {
-        e.preventDefault();
         const payload = {
             title: document.getElementById('jobTitle').value,
+            companyName: document.getElementById('jobCompany').value,
+            location: document.getElementById('jobLoc').value,
+            jobType: document.getElementById('jobType').value,
+            experience: document.getElementById('jobExp').value,
+            salaryRange: document.getElementById('jobSal').value,
+            requiredSkills: document.getElementById('jobSkills').value,
             description: document.getElementById('jobDesc').value,
-            requiredSkills: document.getElementById('jobSkills').value
+            responsibilities: document.getElementById('jobResp').value,
+            benefits: document.getElementById('jobBen').value,
         };
 
         fetch('http://localhost:8080/api/jobs', {
             method: 'POST',
             headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('jwt_token'),
+                'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
         })
-            .then(() => {
-                alert('Job posted successfully!');
-                hideModalSafe('createJobModal');
+            .then(async response => {
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(errText || 'Failed to save job posting.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                showToast('Job posted successfully!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('createJobModal')).hide();
                 document.getElementById('createJobForm').reset();
                 loadHRJobs();
-            });
-    });
-
-    // Edit Job
-    document.getElementById('editJobForm')?.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const jobId = document.getElementById('editJobId').value;
-        const payload = {
-            title: document.getElementById('editJobTitle').value,
-            description: document.getElementById('editJobDesc').value,
-            requiredSkills: document.getElementById('editJobSkills').value
-        };
-
-        fetch(`http://localhost:8080/api/jobs/${jobId}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('jwt_token'),
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        })
-            .then(() => {
-                alert('Job updated successfully!');
-                hideModalSafe('editJobModal');
-                loadHRJobs();
+            })
+            .catch(error => {
+                showToast('Error: ' + error.message, 'danger');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Publish Job';
             });
     });
 });
 
 function loadHRJobs() {
     fetch('http://localhost:8080/api/jobs/my-jobs', {
-        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
+        headers: { 'Authorization': 'Bearer ' + token }
     })
-        .then(response => response.json())
+        .then(res => res.json())
         .then(jobs => {
-            currentClientJobs = jobs;
-            const jobsContainer = document.getElementById('jobPostingsList');
-            jobsContainer.innerHTML = '';
+            currentJobs = jobs;
+            const container = document.getElementById('jobPostingsList');
+            container.innerHTML = '';
 
             if (jobs.length === 0) {
-                jobsContainer.innerHTML = '<p class="text-muted text-center w-100 py-3">You have not posted any jobs yet.</p>';
+                container.innerHTML = '<p class="text-muted w-100 text-center mt-3">You haven\'t posted any jobs yet.</p>';
                 return;
             }
 
             jobs.forEach(job => {
-                const jobCard = `
+                container.innerHTML += `
             <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card job-card h-100 shadow-sm">
-                    <div class="card-body d-flex flex-column">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h5 class="card-title fw-bold text-dark mb-0">${job.title}</h5>
-                            <div>
-                                <button class="btn btn-sm btn-light text-primary border shadow-sm me-1" onclick="openEditModal(${job.id})" title="Edit Job"><i class="bi bi-pencil-square"></i></button>
-                                <button class="btn btn-sm btn-light text-danger border shadow-sm" onclick="deleteJob(${job.id})" title="Delete Job"><i class="bi bi-trash"></i></button>
-                            </div>
+                <div class="card job-card h-100 shadow-sm" onclick="loadApplicants(${job.id})">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <h5 class="fw-bold mb-1 text-truncate">${job.title}</h5>
+                            <button class="btn btn-sm text-danger border-0 p-0" onclick="event.stopPropagation(); deleteJob(${job.id})"><i class="bi bi-trash"></i></button>
                         </div>
-                        <p class="card-text text-muted small flex-grow-1">${job.description.substring(0, 100)}...</p>
-                        <button class="btn btn-outline-primary w-100 mt-3 fw-semibold" onclick="loadRankedApplicants(${job.id})">
-                            <i class="bi bi-people-fill me-1"></i> View Applicants
-                        </button>
+                        <p class="small text-muted mb-3">${job.location || 'Remote'} · ${job.jobType}</p>
+                        
+                        <div class="d-flex flex-wrap mt-auto">
+                            <span class="stat-badge"><i class="bi bi-file-earmark me-1"></i>${job.applicationCount} Applied</span>
+                            <span class="stat-badge text-warning"><i class="bi bi-star-fill me-1"></i>${job.shortlistedCount} Shortlist</span>
+                            <span class="stat-badge text-success"><i class="bi bi-check-circle-fill me-1"></i>${job.hiredCount} Hired</span>
+                        </div>
                     </div>
                 </div>
             </div>`;
-                jobsContainer.innerHTML += jobCard;
             });
         });
 }
 
-function openEditModal(jobId) {
-    const job = currentClientJobs.find(j => j.id === jobId);
-    if (job) {
-        document.getElementById('editJobId').value = job.id;
-        document.getElementById('editJobTitle').value = job.title;
-        document.getElementById('editJobSkills').value = job.requiredSkills;
-        document.getElementById('editJobDesc').value = job.description;
-        new bootstrap.Modal(document.getElementById('editJobModal')).show();
-    }
-}
-
-function deleteJob(jobId) {
-    if (confirm("Are you sure you want to delete this job posting? This will also permanently delete all applications associated with it.")) {
-        fetch(`http://localhost:8080/api/jobs/${jobId}`, {
+function deleteJob(id) {
+    if(confirm("Are you sure? This will delete the job and all associated applications.")) {
+        fetch(`http://localhost:8080/api/jobs/${id}`, {
             method: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
+            headers: { 'Authorization': 'Bearer ' + token }
         })
             .then(() => {
-                alert('Job deleted successfully!');
+                showToast('Job deleted successfully', 'success');
+                document.getElementById('applicantTableBody').innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Select a job above to view pipeline.</td></tr>';
                 loadHRJobs();
-                document.getElementById('applicantTableBody').innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4 bg-transparent shadow-none">Waiting for selection...</td></tr>';
-            });
+            })
+            .catch(() => showToast('Failed to delete job', 'danger'));
     }
 }
 
-function loadRankedApplicants(jobId) {
-    currentViewingJobId = jobId;
+function loadApplicants(jobId) {
+    viewingJobId = jobId;
     fetch(`http://localhost:8080/api/applications/job/${jobId}`, {
-        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
+        headers: { 'Authorization': 'Bearer ' + token }
     })
-        .then(response => response.json())
-        .then(applicants => {
+        .then(res => res.json())
+        .then(apps => {
             const tbody = document.getElementById('applicantTableBody');
             tbody.innerHTML = '';
+            if(!apps.length) return tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No applicants yet.</td></tr>';
 
-            if (applicants.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No applications received yet.</td></tr>';
-                return;
-            }
+            apps.forEach(app => {
+                const actions = app.status === 'WITHDRAWN' ? `<span class="badge bg-secondary">Candidate Withdrew</span>` : `
+            <select class="form-select form-select-sm d-inline-block w-auto" onchange="updateStatus(${app.id}, this.value)">
+                <option value="APPLIED" ${app.status==='APPLIED'?'selected':''}>Applied</option>
+                <option value="SCREENING" ${app.status==='SCREENING'?'selected':''}>Screening</option>
+                <option value="SHORTLISTED" ${app.status==='SHORTLISTED'?'selected':''}>Shortlisted</option>
+                <option value="HIRED" ${app.status==='HIRED'?'selected':''}>Hired</option>
+                <option value="REJECTED" ${app.status==='REJECTED'?'selected':''}>Rejected</option>
+            </select>
+            <button class="btn btn-sm btn-light ms-1 border" onclick="downloadResume(${app.id})" title="Download PDF"><i class="bi bi-download text-primary"></i></button>`;
 
-            applicants.forEach(app => {
-                const scoreClass = app.matchScore > 75 ? 'text-success fw-bold' : '';
-
-                let actionButtons = '';
-                if (app.status === 'PENDING') {
-                    actionButtons = `
-                    <button class="btn btn-success btn-sm shadow-sm" onclick="updateStatus(${app.id}, 'HIRED')"><i class="bi bi-check-lg"></i> Hire</button>
-                    <button class="btn btn-danger btn-sm shadow-sm ms-1" onclick="updateStatus(${app.id}, 'REJECTED')"><i class="bi bi-x-lg"></i> Reject</button>
-                `;
-                } else {
-                    actionButtons = `<span class="text-muted small fw-bold"><i class="bi bi-lock-fill"></i> Locked</span>`;
-                }
-
-                const row = `
+                tbody.innerHTML += `
             <tr>
-                <td><i class="bi bi-person-circle text-muted me-2"></i>${app.candidateName}</td>
-                <td>
-                    ${app.jobTitle}
-                    <button class="btn btn-link btn-sm text-danger fw-bold text-decoration-none ms-2" onclick="downloadResume(${app.id})" title="Download PDF Resume">
-                        <i class="bi bi-file-earmark-pdf-fill"></i> PDF
-                    </button>
-                </td>
-                <td class="${scoreClass}">${app.matchScore}%</td>
-                <td><span class="badge ${app.status === 'PENDING' ? 'bg-warning text-dark' : (app.status === 'HIRED' ? 'bg-success' : 'bg-danger')}">${app.status}</span></td>
-                <td class="text-end">${actionButtons}</td>
+                <td class="fw-bold"><i class="bi bi-person-circle text-muted me-2"></i>${app.candidateName}</td>
+                <td><span class="badge bg-primary fs-6">${app.matchScore}%</span></td>
+                <td><span class="badge bg-dark">${app.status}</span></td>
+                <td class="text-end">${actions}</td>
             </tr>`;
-                tbody.innerHTML += row;
             });
         });
 }
 
-function updateStatus(applicationId, newStatus) {
-    if(confirm(`Are you sure you want to mark this candidate as ${newStatus}? This action cannot be undone.`)) {
-        fetch(`http://localhost:8080/api/applications/${applicationId}/status?status=${newStatus}`, {
+function updateStatus(id, newStatus) {
+    if (confirm(`Change this candidate's status to ${newStatus}?`)) {
+        fetch(`http://localhost:8080/api/applications/${id}/status?status=${newStatus}`, {
             method: 'PUT',
-            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
-        })
-            .then(() => {
-                alert(`Candidate marked as ${newStatus}.`);
-                if(currentViewingJobId) loadRankedApplicants(currentViewingJobId);
-            });
+            headers: {'Authorization': 'Bearer ' + token}
+        }).then(() => {
+            showToast(`Status updated to ${newStatus}`, 'success');
+            loadApplicants(viewingJobId);
+            loadHRJobs();
+        });
+    } else {
+
+        loadApplicants(viewingJobId);
     }
 }
 
-function downloadResume(applicationId) {
-    fetch(`http://localhost:8080/api/applications/${applicationId}/download`, {
-        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt_token') }
+function downloadResume(id) {
+    fetch(`http://localhost:8080/api/applications/${id}/download`, {
+        headers: { 'Authorization': 'Bearer ' + token }
     })
-        .then(response => {
-            if(!response.ok) throw new Error("Could not download file.");
-            return response.blob();
-        })
+        .then(res => res.blob())
         .then(blob => {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `resume_application_${applicationId}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-        })
-        .catch(err => alert(err.message));
+            a.href = url; a.download = `resume_${id}.pdf`;
+            document.body.appendChild(a); a.click(); a.remove();
+        });
 }

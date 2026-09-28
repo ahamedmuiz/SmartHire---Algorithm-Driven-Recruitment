@@ -28,7 +28,6 @@ public class JobApplication {
     @Column(columnDefinition = "LONGTEXT")
     private String resumeText;
 
-    // NEW: Store the actual PDF file for downloading
     @Lob
     @Column(columnDefinition = "LONGBLOB")
     private byte[] resumeFile;

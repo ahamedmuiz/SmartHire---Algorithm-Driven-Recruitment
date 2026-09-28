@@ -19,16 +19,27 @@ public class JobPosting {
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false, length = 10000)
+    private String companyName;
+    private String location;
+    private String jobType;
+    private String salaryRange;
+    private String experience;
+
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
 
+    @Column(columnDefinition = "TEXT")
+    private String responsibilities;
+
+    @Column(columnDefinition = "TEXT")
+    private String benefits;
+
     @Column(nullable = false)
-    private String requiredSkills; // Comma-separated skills like "Java, Spring, MySQL"
+    private String requiredSkills;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    // Link this job to the HR admin who created it
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hr_id", nullable = false)
     private User hr;

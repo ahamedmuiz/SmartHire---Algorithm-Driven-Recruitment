@@ -7,6 +7,7 @@ import lombok.Data;
 @Builder
 public class ApplicationResponseDTO {
     private Long id;
+    private Long jobId;
     private String candidateName;
     private String jobTitle;
     private Integer matchScore;
